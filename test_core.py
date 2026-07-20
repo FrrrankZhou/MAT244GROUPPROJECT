@@ -3,13 +3,21 @@
 import numpy as np
 
 from data_reader import GroundMotion2D, load_horizontal_motion
-from ode_solver import BuildingParameters, find_peak, simulate_2d
+from ode_solver import (
+    BuildingParameters,
+    find_peak,
+    simulate_2d,
+    study_damping_stiffness,
+    study_parameters,
+)
 
 
 def test_parameter_conversion() -> None:
     params = BuildingParameters.from_period(10.0, 2.0, 0.05)
     assert np.isclose(params.stiffness, 10.0 * np.pi**2)
     assert np.isclose(params.damping, np.pi)
+    assert np.isclose(params.damping_per_mass, np.pi / 10.0)
+    assert np.isclose(params.stiffness_per_mass, np.pi**2)
 
 
 def test_zero_input_gives_zero_response() -> None:
@@ -42,3 +50,27 @@ def test_real_nested_zip() -> None:
     motion = load_horizontal_motion("Calama.zip")
     assert len(motion.time) == 20100
     assert np.isclose(motion.dt, 0.01)
+
+
+def test_parameter_study_varies_one_parameter_at_a_time() -> None:
+    zeros = np.zeros(5)
+    motion = GroundMotion2D(np.arange(5) * 0.1, zeros, zeros, 0.1, "HNE", "HNN")
+    params = BuildingParameters(2.0, 8.0, 0.4)
+    study = study_parameters(motion, params, factors=np.array([0.5, 1.0, 1.5]))
+    assert np.allclose(study.mass_values, [1.0, 2.0, 3.0])
+    assert np.allclose(study.damping_values, [0.2, 0.4, 0.6])
+    assert np.allclose(study.stiffness_values, [4.0, 8.0, 12.0])
+    assert np.allclose(study.mass_max_displacements, 0.0)
+
+
+def test_2d_parameter_grid_contains_all_combinations() -> None:
+    zeros = np.zeros(3)
+    motion = GroundMotion2D(np.arange(3) * 0.1, zeros, zeros, 0.1, "HNE", "HNN")
+    study = study_damping_stiffness(
+        motion,
+        BuildingParameters(2.0, 8.0, 0.4),
+        factors=np.array([0.5, 1.5]),
+    )
+    assert study.maximum_displacements.shape == (2, 2)
+    assert study.mass == 2.0
+    assert np.allclose(study.maximum_displacements, 0.0)

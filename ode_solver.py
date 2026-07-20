@@ -48,6 +48,16 @@ class BuildingParameters:
     def damping_ratio(self) -> float:
         return self.damping / (2.0 * np.sqrt(self.mass * self.stiffness))
 
+    @property
+    def damping_per_mass(self) -> float:
+        """Normalized damping coefficient d/m, with units 1/s."""
+        return self.damping / self.mass
+
+    @property
+    def stiffness_per_mass(self) -> float:
+        """Normalized stiffness coefficient k/m, with units 1/s²."""
+        return self.stiffness / self.mass
+
 
 @dataclass(frozen=True)
 class HorizontalResponse:
@@ -70,14 +80,39 @@ class PeakResponse:
     simplified_gap: float
 
 
+@dataclass(frozen=True)
+class ParameterStudy:
+    """Maximum displacement obtained by varying one parameter at a time."""
+
+    mass_values: FloatArray
+    mass_max_displacements: FloatArray
+    damping_values: FloatArray
+    damping_max_displacements: FloatArray
+    stiffness_values: FloatArray
+    stiffness_max_displacements: FloatArray
+
+
+@dataclass(frozen=True)
+class DampingStiffnessStudy:
+    """Results for combinations of damping and stiffness at a fixed mass."""
+
+    mass: float
+    damping_values: FloatArray
+    stiffness_values: FloatArray
+    maximum_displacements: FloatArray
+
+
 def _derivative(
-    state: NDArray[np.float64], ground_acceleration: float, params: BuildingParameters
+    state: NDArray[np.float64],
+    ground_acceleration: float,
+    damping_per_mass: float,
+    stiffness_per_mass: float,
 ) -> NDArray[np.float64]:
     """Return [x', v'] for m*x'' + c*x' + k*x = -m*a_g(t)."""
     displacement, velocity = state
     acceleration = (
-        -(params.damping / params.mass) * velocity
-        - (params.stiffness / params.mass) * displacement
+        -damping_per_mass * velocity
+        -stiffness_per_mass * displacement
         - ground_acceleration
     )
     return np.array([velocity, acceleration], dtype=np.float64)
@@ -90,18 +125,26 @@ def _solve_component(
     method: Method,
 ) -> FloatArray:
     state = np.zeros((len(ground_acceleration), 2), dtype=np.float64)
+    damping_per_mass = params.damping_per_mass
+    stiffness_per_mass = params.stiffness_per_mass
+
+    def derivative(current: NDArray[np.float64], acceleration: float) -> FloatArray:
+        return _derivative(
+            current, acceleration, damping_per_mass, stiffness_per_mass
+        )
+
     for i in range(len(ground_acceleration) - 1):
         current = state[i]
         a0 = ground_acceleration[i]
         if method == "euler":
-            state[i + 1] = current + dt * _derivative(current, a0, params)
+            state[i + 1] = current + dt * derivative(current, a0)
         elif method == "rk4":
             a1 = ground_acceleration[i + 1]
             amid = 0.5 * (a0 + a1)  # linear interpolation of the earthquake input
-            k1 = _derivative(current, a0, params)
-            k2 = _derivative(current + 0.5 * dt * k1, amid, params)
-            k3 = _derivative(current + 0.5 * dt * k2, amid, params)
-            k4 = _derivative(current + dt * k3, a1, params)
+            k1 = derivative(current, a0)
+            k2 = derivative(current + 0.5 * dt * k1, amid)
+            k3 = derivative(current + 0.5 * dt * k2, amid)
+            k4 = derivative(current + dt * k3, a1)
             state[i + 1] = current + dt * (k1 + 2*k2 + 2*k3 + k4) / 6.0
         else:
             raise ValueError("method must be 'euler' or 'rk4'.")
@@ -136,4 +179,89 @@ def find_peak(response: HorizontalResponse) -> PeakResponse:
         north_displacement=float(response.displacement_north[index]),
         index=index,
         simplified_gap=2.0 * maximum,
+    )
+
+
+def study_parameters(
+    motion: GroundMotion2D,
+    baseline: BuildingParameters,
+    method: Method = "rk4",
+    factors: FloatArray | None = None,
+) -> ParameterStudy:
+    """Vary m, d, and k separately and calculate r_max for each value.
+
+    This is a one-at-a-time sensitivity study: while one parameter changes,
+    the other two remain at their baseline values.
+    """
+    baseline.validated()
+    if factors is None:
+        factors = np.linspace(0.5, 1.5, 9, dtype=np.float64)
+    else:
+        factors = np.asarray(factors, dtype=np.float64)
+    if factors.ndim != 1 or len(factors) == 0:
+        raise ValueError("factors must be a nonempty one-dimensional array.")
+    if not np.isfinite(factors).all() or np.any(factors <= 0):
+        raise ValueError("All parameter factors must be finite and positive.")
+
+    def maximum(params: BuildingParameters) -> float:
+        return find_peak(simulate_2d(motion, params, method)).maximum_displacement
+
+    mass_values = baseline.mass * factors
+    damping_values = baseline.damping * factors
+    stiffness_values = baseline.stiffness * factors
+    mass_max = np.array([
+        maximum(BuildingParameters(value, baseline.stiffness, baseline.damping))
+        for value in mass_values
+    ])
+    damping_max = np.array([
+        maximum(BuildingParameters(baseline.mass, baseline.stiffness, value))
+        for value in damping_values
+    ])
+    stiffness_max = np.array([
+        maximum(BuildingParameters(baseline.mass, value, baseline.damping))
+        for value in stiffness_values
+    ])
+    return ParameterStudy(
+        mass_values, mass_max,
+        damping_values, damping_max,
+        stiffness_values, stiffness_max,
+    )
+
+
+def study_damping_stiffness(
+    motion: GroundMotion2D,
+    baseline: BuildingParameters,
+    method: Method = "rk4",
+    factors: FloatArray | None = None,
+) -> DampingStiffnessStudy:
+    """Evaluate r_max over a d-k grid while holding mass constant."""
+    baseline.validated()
+    if factors is None:
+        factors = np.linspace(0.5, 1.5, 7, dtype=np.float64)
+    else:
+        factors = np.asarray(factors, dtype=np.float64)
+    if factors.ndim != 1 or len(factors) == 0:
+        raise ValueError("factors must be a nonempty one-dimensional array.")
+    if not np.isfinite(factors).all() or np.any(factors <= 0):
+        raise ValueError("All parameter factors must be finite and positive.")
+
+    dampings, stiffnesses = np.meshgrid(
+        baseline.damping * factors,
+        baseline.stiffness * factors,
+        indexing="xy",
+    )
+    maxima = np.empty(dampings.size, dtype=np.float64)
+    for index, (damping, stiffness) in enumerate(zip(
+        dampings.ravel(), stiffnesses.ravel()
+    )):
+        parameters = BuildingParameters(baseline.mass, stiffness, damping)
+        maxima[index] = find_peak(
+            simulate_2d(motion, parameters, method)
+        ).maximum_displacement
+
+    return DampingStiffnessStudy(
+        baseline.mass,
+        dampings[0, :].copy(),
+        stiffnesses[:, 0].copy(),
+        maxima.reshape(stiffnesses.shape),
     )

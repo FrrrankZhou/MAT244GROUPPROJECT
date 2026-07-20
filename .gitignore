@@ -2,3 +2,5 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 earthquake_response.png
+parameter_study.png
+parameter_heatmap_2d.png
