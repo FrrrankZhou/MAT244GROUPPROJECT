@@ -1,5 +1,3 @@
-"""Run the three-week ODE course project example."""
-
 import numpy as np
 
 from data_reader import load_horizontal_motion
@@ -12,12 +10,12 @@ from ode_solver import (
 )
 from plotting import plot_damping_stiffness_heatmap, plot_parameter_study, plot_response
 
-
+# === === === === === === === === === === === === === === === === === ===
 # Change these values to perform different experiments.
-DATA_FILE = "Calama.zip"
-MASS_KG = 1_000_000.0
-NATURAL_PERIOD_S = 1.0
-DAMPING_RATIO = 0.05
+DATA_FILE = "Honaunau-Napoopoo.zip"
+MASS_KG = 1_000_000.0  # 1000 T, a possible mass
+NATURAL_PERIOD_S = 1.0  # 1.0, classical value in engineering
+DAMPING_RATIO = 0.05  # 0.05, classical value in engineering
 METHOD = "rk4"  # "euler" or "rk4"
 
 # Use more samples near the current building parameters (factor = 1).  This
@@ -30,6 +28,7 @@ PARAMETER_FACTORS = np.array([
 ])
 GENERATE_HEATMAP = False
 
+#  === === === === === === === === === === === === === === === === === ===
 
 def main() -> None:
     motion = load_horizontal_motion(DATA_FILE)
