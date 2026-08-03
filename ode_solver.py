@@ -65,6 +65,9 @@ class HorizontalResponse:
     displacement_east: FloatArray
     displacement_north: FloatArray
     total_displacement: FloatArray
+    velocity_east: FloatArray
+    velocity_north: FloatArray
+    total_velocity: FloatArray
     acceleration_east: FloatArray
     acceleration_north: FloatArray
     method: Method
@@ -123,7 +126,7 @@ def _solve_component(
     dt: float,
     params: BuildingParameters,
     method: Method,
-) -> FloatArray:
+) -> tuple[FloatArray, FloatArray]:
     state = np.zeros((len(ground_acceleration), 2), dtype=np.float64)
     damping_per_mass = params.damping_per_mass
     stiffness_per_mass = params.stiffness_per_mass
@@ -148,7 +151,7 @@ def _solve_component(
             state[i + 1] = current + dt * (k1 + 2*k2 + 2*k3 + k4) / 6.0
         else:
             raise ValueError("method must be 'euler' or 'rk4'.")
-    return state[:, 0]
+    return state[:, 0], state[:, 1]
 
 
 def simulate_2d(
@@ -160,11 +163,17 @@ def simulate_2d(
     parameters.validated()
     if method not in {"euler", "rk4"}:
         raise ValueError("method must be 'euler' or 'rk4'.")
-    east = _solve_component(motion.acceleration_east, motion.dt, parameters, method)
-    north = _solve_component(motion.acceleration_north, motion.dt, parameters, method)
+    east, velocity_east = _solve_component(
+        motion.acceleration_east, motion.dt, parameters, method
+    )
+    north, velocity_north = _solve_component(
+        motion.acceleration_north, motion.dt, parameters, method
+    )
     total = np.hypot(east, north)
+    total_velocity = np.hypot(velocity_east, velocity_north)
     return HorizontalResponse(
         motion.time.copy(), east, north, total,
+        velocity_east, velocity_north, total_velocity,
         motion.acceleration_east.copy(), motion.acceleration_north.copy(), method,
     )
 

@@ -1,0 +1,3 @@
+method,maximum_horizontal_displacement_m,time_s,east_displacement_m,north_displacement_m,simplified_gap_m
+EULER,0.074239616,53.380000,0.026067679,-0.069512565,0.148479232
+RK4,0.052045598,52.850000,-0.013961555,0.050138002,0.104091196

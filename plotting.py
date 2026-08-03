@@ -56,6 +56,7 @@ def plot_response(
 
 def plot_parameter_study(
     study: ParameterStudy,
+    method: str,
     save_path: str | Path | None = None,
     show: bool = True,
 ) -> Figure:
@@ -77,7 +78,56 @@ def plot_parameter_study(
         axis.grid(alpha=0.3)
         axis.ticklabel_format(axis="x", style="sci", scilimits=(-3, 4))
 
-    fig.suptitle("One-at-a-time parameter study (other parameters held constant)")
+    fig.suptitle(
+        f"One-at-a-time parameter study - {method.upper()} "
+        "(other parameters held constant)"
+    )
+    fig.tight_layout()
+    if save_path is not None:
+        fig.savefig(save_path, dpi=200, bbox_inches="tight")
+    if show:
+        plt.show()
+    return fig
+
+
+def plot_method_displacement_comparison(
+    euler: HorizontalResponse,
+    rk4: HorizontalResponse,
+    save_path: str | Path | None = None,
+    show: bool = True,
+) -> Figure:
+    """Compare Euler and RK4 total horizontal displacement on one plot."""
+    fig, axis = plt.subplots(figsize=(11, 5))
+    axis.plot(euler.time, euler.total_displacement, label="Euler", linewidth=0.9)
+    axis.plot(rk4.time, rk4.total_displacement, label="RK4", linewidth=0.9)
+    axis.set_title("Total horizontal displacement: Euler vs RK4")
+    axis.set_xlabel("Time (s)")
+    axis.set_ylabel("r(t) (m)")
+    axis.grid(alpha=0.3)
+    axis.legend()
+    fig.tight_layout()
+    if save_path is not None:
+        fig.savefig(save_path, dpi=200, bbox_inches="tight")
+    if show:
+        plt.show()
+    return fig
+
+
+def plot_method_velocity_comparison(
+    euler: HorizontalResponse,
+    rk4: HorizontalResponse,
+    save_path: str | Path | None = None,
+    show: bool = True,
+) -> Figure:
+    """Compare Euler and RK4 total horizontal speed on one plot."""
+    fig, axis = plt.subplots(figsize=(11, 5))
+    axis.plot(euler.time, euler.total_velocity, label="Euler", linewidth=0.9)
+    axis.plot(rk4.time, rk4.total_velocity, label="RK4", linewidth=0.9)
+    axis.set_title("Total horizontal velocity magnitude: Euler vs RK4")
+    axis.set_xlabel("Time (s)")
+    axis.set_ylabel("Horizontal speed (m/s)")
+    axis.grid(alpha=0.3)
+    axis.legend()
     fig.tight_layout()
     if save_path is not None:
         fig.savefig(save_path, dpi=200, bbox_inches="tight")
