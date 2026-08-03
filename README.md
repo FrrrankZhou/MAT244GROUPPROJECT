@@ -219,15 +219,15 @@ still needs analysis. Unchecked items are not yet adequately completed.
   implemented and tested.
 - [x] **Strong:** Twenty unit tests cover parsing, parameter validation,
   numerical updates, 2D synthesis, peak extraction, and parameter grids.
-- [x] **Partial:** Euler and RK4 results are compared graphically and
+- [ ] **Partial:** Euler and RK4 results are compared graphically and
   numerically, but the final report still needs an explanation of why Euler
   overpredicts the response.
-- [x] **Partial:** Exact-solution validation exists on the SHM branch, but it
+- [ ] **Partial:** Exact-solution validation exists on the SHM branch, but it
   must be incorporated into the submitted report or merged into the final
   deliverable.
 - [ ] **Needs strengthening:** Add a step-size or convergence study. One time
   step and one exact-solution plot do not fully establish numerical accuracy.
-- [x] **Partial:** Mass, damping, and stiffness sensitivity is computed, but
+- [ ] **Partial:** Mass, damping, and stiffness sensitivity is computed, but
   each curve needs mathematical interpretation through `d/m`, `k/m`, natural
   frequency, and damping ratio.
 - [ ] **Needs strengthening:** If resonance is claimed, support it with a
@@ -235,7 +235,7 @@ still needs analysis. Unchecked items are not yet adequately completed.
   alone is insufficient evidence.
 - [ ] **Needs strengthening:** Compare at least one additional earthquake record
   or explain why the conclusions are intentionally limited to Calama.
-- [x] **Partial:** Assumptions and limitations are documented above, but they
+- [ ] **Partial:** Assumptions and limitations are documented above, but they
   must also appear in the final report's discussion.
 - [ ] **Needs strengthening:** Discuss implications critically: what the
   computed gap can suggest, what it cannot establish, and how model uncertainty
@@ -243,7 +243,7 @@ still needs analysis. Unchecked items are not yet adequately completed.
 
 ### References and background research - 10 points
 
-- [x] **Partial:** CESMD and the course topics have been identified as the data
+- [ ] **Partial:** CESMD and the course topics have been identified as the data
   and mathematical background.
 - [ ] **Needs strengthening:** Cite the CESMD record and CESMD format or data
   documentation formally.
@@ -260,7 +260,7 @@ still needs analysis. Unchecked items are not yet adequately completed.
 
 ### Organization and writing - 15 points
 
-- [x] **Partial:** Definitions, notation, units, and assumptions are organized
+- [ ] **Partial:** Definitions, notation, units, and assumptions are organized
   in this README.
 - [ ] **Needs strengthening:** Write the final report with a clear sequence:
   introduction, model derivation, methods, verification, earthquake results,
@@ -281,7 +281,7 @@ still needs analysis. Unchecked items are not yet adequately completed.
 - [x] **Strong:** Euler and RK4 displacement and velocity comparisons are
   available.
 - [x] **Strong:** The one-at-a-time parameter study labels RK4 as the method.
-- [x] **Partial:** Exact/Euler/RK4 SHM validation is available on the validation
+- [ ] **Partial:** Exact/Euler/RK4 SHM validation is available on the validation
   branch but still needs a report caption and interpretation.
 - [ ] **Needs strengthening:** Give every final figure a numbered caption that
   states the dataset, parameters, method, units, and main conclusion.
@@ -290,15 +290,5 @@ still needs analysis. Unchecked items are not yet adequately completed.
 - [ ] **Needs strengthening:** Add a compact table comparing records or time
   steps so the conclusions are supported by more than one visual example.
 
-## Highest-priority remaining work
 
-1. Incorporate the exact/Euler/RK4 SHM validation into the final deliverable.
-2. Add a time-step convergence experiment and explain Euler's artificial energy
-   growth.
-3. Interpret each parameter curve mathematically instead of only describing
-   its shape.
-4. Add and cite the required background sources.
-5. Write a critical limitations and implications section, especially for
-   `G = 2 r_max`.
-6. Add report-quality captions and a small comparison table.
 7. Verify the page limit and complete the final report structure.
