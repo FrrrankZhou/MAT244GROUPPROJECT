@@ -126,8 +126,11 @@ def _solve_component(
     dt: float,
     params: BuildingParameters,
     method: Method,
+    initial_displacement: float = 0.0,
+    initial_velocity: float = 0.0,
 ) -> tuple[FloatArray, FloatArray]:
     state = np.zeros((len(ground_acceleration), 2), dtype=np.float64)
+    state[0] = [initial_displacement, initial_velocity]
     damping_per_mass = params.damping_per_mass
     stiffness_per_mass = params.stiffness_per_mass
 
@@ -158,16 +161,38 @@ def simulate_2d(
     motion: GroundMotion2D,
     parameters: BuildingParameters,
     method: Method = "rk4",
+    initial_displacement_east: float = 0.0,
+    initial_velocity_east: float = 0.0,
+    initial_displacement_north: float = 0.0,
+    initial_velocity_north: float = 0.0,
 ) -> HorizontalResponse:
     """Solve HNE/HNN separately and combine them at every time sample."""
     parameters.validated()
     if method not in {"euler", "rk4"}:
         raise ValueError("method must be 'euler' or 'rk4'.")
+    initial_values = np.array([
+        initial_displacement_east,
+        initial_velocity_east,
+        initial_displacement_north,
+        initial_velocity_north,
+    ])
+    if not np.isfinite(initial_values).all():
+        raise ValueError("Initial displacements and velocities must be finite.")
     east, velocity_east = _solve_component(
-        motion.acceleration_east, motion.dt, parameters, method
+        motion.acceleration_east,
+        motion.dt,
+        parameters,
+        method,
+        initial_displacement_east,
+        initial_velocity_east,
     )
     north, velocity_north = _solve_component(
-        motion.acceleration_north, motion.dt, parameters, method
+        motion.acceleration_north,
+        motion.dt,
+        parameters,
+        method,
+        initial_displacement_north,
+        initial_velocity_north,
     )
     total = np.hypot(east, north)
     total_velocity = np.hypot(velocity_east, velocity_north)

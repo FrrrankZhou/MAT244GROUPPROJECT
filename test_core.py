@@ -27,6 +27,24 @@ def test_zero_input_gives_zero_response() -> None:
     assert np.allclose(response.total_displacement, 0.0)
 
 
+def test_initial_conditions_are_applied_to_both_directions() -> None:
+    zeros = np.zeros(3)
+    motion = GroundMotion2D(np.arange(3) * 0.1, zeros, zeros, 0.1, "HNE", "HNN")
+    response = simulate_2d(
+        motion,
+        BuildingParameters(1.0, 1.0, 0.0),
+        initial_displacement_east=2.0,
+        initial_velocity_east=3.0,
+        initial_displacement_north=4.0,
+        initial_velocity_north=5.0,
+    )
+    assert response.displacement_east[0] == 2.0
+    assert response.velocity_east[0] == 3.0
+    assert response.displacement_north[0] == 4.0
+    assert response.velocity_north[0] == 5.0
+    assert response.total_displacement[0] == np.hypot(2.0, 4.0)
+
+
 def test_resultant_is_combined_at_each_time() -> None:
     from ode_solver import HorizontalResponse
 

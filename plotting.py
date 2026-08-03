@@ -3,7 +3,9 @@
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.figure import Figure
+from numpy.typing import NDArray
 
 from ode_solver import (
     DampingStiffnessStudy,
@@ -128,6 +130,44 @@ def plot_method_velocity_comparison(
     axis.set_ylabel("Horizontal speed (m/s)")
     axis.grid(alpha=0.3)
     axis.legend()
+    fig.tight_layout()
+    if save_path is not None:
+        fig.savefig(save_path, dpi=200, bbox_inches="tight")
+    if show:
+        plt.show()
+    return fig
+
+
+def plot_simple_harmonic_validation(
+    time: NDArray[np.float64],
+    exact_east: NDArray[np.float64],
+    exact_north: NDArray[np.float64],
+    euler: HorizontalResponse,
+    rk4: HorizontalResponse,
+    save_path: str | Path | None = None,
+    show: bool = True,
+) -> Figure:
+    """Compare exact, Euler, and RK4 solutions for 2D simple harmonic motion."""
+    exact_total = np.hypot(exact_east, exact_north)
+    fig, axes = plt.subplots(3, 1, figsize=(11, 10), sharex=True)
+    panels = (
+        (exact_east, euler.displacement_east, rk4.displacement_east,
+         "East displacement", "x_E(t) (m)"),
+        (exact_north, euler.displacement_north, rk4.displacement_north,
+         "North displacement", "x_N(t) (m)"),
+        (exact_total, euler.total_displacement, rk4.total_displacement,
+         "Total horizontal displacement", "r(t) (m)"),
+    )
+    for axis, (exact, euler_values, rk4_values, title, ylabel) in zip(axes, panels):
+        axis.plot(time, exact, label="Exact", color="black", linewidth=2.0)
+        axis.plot(time, euler_values, label="Euler", linestyle="--", linewidth=1.0)
+        axis.plot(time, rk4_values, label="RK4", linestyle=":", linewidth=1.5)
+        axis.set_title(title)
+        axis.set_ylabel(ylabel)
+        axis.grid(alpha=0.3)
+        axis.legend()
+    axes[-1].set_xlabel("Time (s)")
+    fig.suptitle("2D simple harmonic motion: Exact vs Euler vs RK4")
     fig.tight_layout()
     if save_path is not None:
         fig.savefig(save_path, dpi=200, bbox_inches="tight")
